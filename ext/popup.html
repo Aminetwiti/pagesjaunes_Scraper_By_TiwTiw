@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>PagesJaunes Extractor Pro</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 420px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+    .container { background: white; }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 20px; margin-bottom: 5px; }
+    .header p { font-size: 12px; opacity: 0.9; }
+    .content { padding: 20px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid #e9ecef;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+      display: block;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #6c757d;
+      margin-top: 5px;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 10px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+    .btn-secondary {
+      background: #28a745;
+      color: white;
+    }
+    .btn-secondary:hover { background: #218838; transform: translateY(-2px); }
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .btn-small {
+      padding: 10px;
+      font-size: 13px;
+    }
+    .options {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .option-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .option-row label { font-size: 13px; color: #495057; }
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 5px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+    }
+    #status {
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    #status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    #status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    #status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    .progress-bar {
+      height: 4px;
+      background: #e9ecef;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      display: none;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .preview {
+      max-height: 150px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .footer {
+      background: #f8f9fa;
+      padding: 15px;
+      text-align: center;
+      font-size: 11px;
+      color: #6c757d;
+      border-top: 1px solid #e9ecef;
+    }
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📋 PagesJaunes Extractor Pro</h1>
+      <p>Extraction intelligente de données</p>
+    </div>
+    <div class="content">
+      <div class="stats">
+        <div class="stat-card">
+          <span class="stat-value" id="stat-total">0</span>
+          <span class="stat-label">Fiches</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="stat-phones">0</span>
+          <span class="stat-label">Téléphones</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="stat-emails">0</span>
+          <span class="stat-label">Emails</span>
+        </div>
+      </div>
+      
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      
+      <div id="status"></div>
+      
+      <div class="options">
+        <div class="option-row">
+          <label>Pagination auto</label>
+          <input type="checkbox" id="auto-paginate" checked>
+        </div>
+        <div class="option-row">
+          <label>Cliquer "Afficher numéro"</label>
+          <input type="checkbox" id="reveal-phones" checked>
+        </div>
+        <div class="option-row">
+          <label>Pages max</label>
+          <input type="number" id="max-pages" value="10" min="1" max="50">
+        </div>
+        <div class="option-row">
+          <label>Délai entre pages (ms)</label>
+          <input type="number" id="page-delay" value="2000" min="500" max="10000" step="500">
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" id="extract">
+        Extraire les données
+      </button>
+      
+      <div class="btn-group">
+        <button class="btn btn-secondary btn-small" id="export-json">📥 JSON</button>
+        <button class="btn btn-secondary btn-small" id="export-csv">📥 CSV</button>
+      </div>
+      
+      <div class="preview" id="preview">Aucune donnée extraite</div>
+    </div>
+    <div class="footer">
+      Made with ❤️ | Version 2.0 Pro
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

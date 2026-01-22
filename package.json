@@ -1,0 +1,21 @@
+{
+    "name": "pagejaune-scraper-tiwitiw",
+    "version": "1.0.0",
+    "description": "PagesJaunes Scraper by TiwiTiw - Professional scraper using Puppeteer for Linux deployment",
+    "main": "scraper.js",
+    "scripts": {
+        "start": "node scraper.js",
+        "test": "echo \"No tests yet\" && exit 0"
+    },
+    "keywords": [
+        "scraper",
+        "pagesjaunes",
+        "puppeteer",
+        "tiwitiw"
+    ],
+    "author": "TiwiTiw",
+    "license": "MIT",
+    "dependencies": {
+        "puppeteer": "^22.0.0"
+    }
+}

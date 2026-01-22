@@ -19,7 +19,7 @@ function showStatus(msg, type = 'info') {
 function updateStats(data) {
   document.getElementById('stat-total').textContent = data.length;
   document.getElementById('stat-phones').textContent = data.filter(d => d.telephone).length;
-  document.getElementById('stat-emails').textContent = data.filter(d => d.email).length;
+  // document.getElementById('stat-emails').textContent = data.filter(d => d.email).length; // Masqué
 }
 
 function updatePreview(data) {
@@ -41,6 +41,18 @@ function setProgress(percent) {
   fill.style.width = percent + '%';
 }
 
+// === NOUVEAU : BOUTON VIDER ===
+document.getElementById('btn-clear-data').onclick = () => {
+  if (confirm('Voulez-vous vraiment vider toutes les données extraites ?')) {
+    lastData = [];
+    updateStats([]);
+    updatePreview([]);
+    chrome.storage.local.remove(['lastExtraction', 'timestamp'], () => {
+      showStatus('🗑️ Données vidées avec succès !', 'success');
+    });
+  }
+};
+
 document.getElementById('extract').onclick = async () => {
   if (isExtracting) return;
   isExtracting = true;
@@ -50,13 +62,11 @@ document.getElementById('extract').onclick = async () => {
   btn.innerHTML = '<span class="loader"></span>Extraction en cours...';
   btn.disabled = true;
 
-  // === CONFIGURATION ===
   const options = {
     autoPaginate: document.getElementById('auto-paginate').checked,
     revealPhones: document.getElementById('reveal-phones').checked,
     maxPages: parseInt(document.getElementById('max-pages').value),
     pageDelay: parseInt(document.getElementById('page-delay').value),
-    // PRIX CONFIGURABLES:
     nextSelector: document.getElementById('selector-next').value,
     cardSelector: document.getElementById('selector-card').value
   };
@@ -76,11 +86,9 @@ document.getElementById('extract').onclick = async () => {
       setProgress(100);
       const newData = results && results[0] && results[0].result ? results[0].result : [];
 
-      // Mode Cumul (Append) vs Remplacement
       const appendMode = document.getElementById('append-mode').checked;
 
       if (appendMode && lastData.length > 0) {
-        // Fusionner avec dédoublonnage (basé sur URL)
         const existingUrls = new Set(lastData.map(d => d.url));
         let addeCount = 0;
         for (const item of newData) {
@@ -90,9 +98,8 @@ document.getElementById('extract').onclick = async () => {
             addeCount++;
           }
         }
-        showStatus(`✅ Terminée ! ${newData.length} trouvés, ${addeCount} ajoutés.`, 'success');
+        showStatus(`✅ Terminée ! ${lastData.length} total (dont ${addeCount} nouveaux).`, 'success');
       } else {
-        // Mode Remplacement standard
         lastData = newData;
         showStatus(`✅ ${lastData.length} fiches extraites avec succès !`, 'success');
       }
@@ -159,7 +166,9 @@ document.getElementById('deep-scrap').onclick = async () => {
     if (item.url && item.url.includes('/pros/')) {
       try {
         const tab = await chrome.tabs.create({ url: item.url, active: false });
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 2000)); // Attente chargement
+
+        // Force Scroll pour tout charger (images, lazy load)
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => { window.scrollTo(0, document.body.scrollHeight); }
@@ -170,8 +179,36 @@ document.getElementById('deep-scrap').onclick = async () => {
           target: { tabId: tab.id },
           func: () => {
             const r = {};
-            const pageText = document.body.innerText;
+            let jsonLd = {};
+            let faqData = null;
 
+            try {
+              const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+              for (const s of scripts) {
+                const txt = s.textContent;
+                const json = JSON.parse(txt);
+                const items = Array.isArray(json) ? json : [json];
+                const business = items.find(i => i['@type'] === 'LocalBusiness' || i['@type'] === 'Restaurant' || i['@type'] === 'Hotel' || i['@type'] === 'FoodEstablishment');
+                if (business) jsonLd = business;
+                if (txt.includes('FAQPage')) {
+                  const faq = items.find(i => i['@type'] === 'FAQPage');
+                  if (faq) faqData = faq;
+                }
+              }
+            } catch (e) { }
+
+            r.description = jsonLd.description || '';
+            r.activite = jsonLd.servesCuisine || '';
+            r.horaires = jsonLd.openingHours || '';
+
+            if (faqData && faqData.mainEntity) {
+              const q = faqData.mainEntity.find(x => x.name && x.name.match(/prestations|services/i));
+              if (q && q.acceptedAnswer) {
+                r.services = q.acceptedAnswer.text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+              }
+            }
+
+            const pageText = document.body.innerText;
             const siretMatch = pageText.match(/SIRET\s*[\:\.]?\s*(\d[\d\s]{13,})/i) ||
               pageText.match(/\b\d{3}\s\d{3}\s\d{3}\s\d{5}\b/);
             if (siretMatch) {
@@ -182,7 +219,7 @@ document.getElementById('deep-scrap').onclick = async () => {
               pageText.match(/\b\d{4}[A-Z]\b/);
             if (nafMatch) r.code_naf = nafMatch[1] || nafMatch[0];
 
-            const legalBlock = document.querySelector('#bloc-infos-legales, .legal-info, .infos-juridiques, .bi-bloc-infos');
+            const legalBlock = document.querySelector('#bloc-infos-legales, .legal-info, .infos-juridiques');
             const textToSearch = (legalBlock ? legalBlock.innerText : '') + '\n' + pageText;
 
             const capMatch = textToSearch.match(/Capital\s*[\:\.]?\s*([\d\s\.]+€?)/i);
@@ -197,28 +234,27 @@ document.getElementById('deep-scrap').onclick = async () => {
             const effMatch = textToSearch.match(/Effectif\s*[\:\.]?\s*([^\n]+)/i);
             if (effMatch) r.effectif = effMatch[1].trim();
 
-            const allLinks = Array.from(document.querySelectorAll('a[href]'));
-            r.facebook = allLinks.find(a => a.href.includes('facebook.com') && !a.href.includes('share'))?.href || '';
-            r.instagram = allLinks.find(a => a.href.includes('instagram.com') && !a.href.includes('share'))?.href || '';
-            r.twitter = allLinks.find(a => (a.href.includes('twitter.com') || a.href.includes('x.com')) && !a.href.includes('share'))?.href || '';
-            r.linkedin = allLinks.find(a => a.href.includes('linkedin.com') && !a.href.includes('share'))?.href || '';
-
-            try {
-              const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-              for (const s of scripts) {
-                if (s.textContent.includes('FAQPage')) {
-                  const faq = JSON.parse(s.textContent);
-                  const items = faq.mainEntity || faq;
-                  if (Array.isArray(items)) {
-                    const q = items.find(x => x.name && x.name.match(/prestations|services/i));
-                    if (q && q.acceptedAnswer) {
-                      r.services = q.acceptedAnswer.text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-                      break;
-                    }
+            const decodePJ = (sel) => {
+              const elems = document.querySelectorAll(sel);
+              for (const el of elems) {
+                if (el.href && !el.href.endsWith('#') && !el.href.startsWith('javascript')) return el.href;
+                try {
+                  const raw = el.getAttribute('data-pjlb');
+                  if (raw) {
+                    const json = JSON.parse(raw);
+                    if (json.url) return atob(json.url);
                   }
-                }
+                } catch (e) { }
               }
-            } catch (e) { }
+              return '';
+            };
+
+            r.site_web = decodePJ('a.SITE_EXTERNE, a.website, [data-pjstats*="SITE_GRATUIT"]');
+            r.facebook = decodePJ('a.FACEBOOK, a[href*="facebook.com"]');
+            r.instagram = decodePJ('a.INSTAGRAM, a[href*="instagram.com"]');
+            r.twitter = decodePJ('a.TWITTER, a[href*="twitter.com"]');
+            r.linkedin = decodePJ('a.LINKEDIN, a[href*="linkedin.com"]');
+            r.youtube = decodePJ('a.YOUTUBE, a[href*="youtube.com"]');
 
             return r;
           }
@@ -228,20 +264,7 @@ document.getElementById('deep-scrap').onclick = async () => {
 
         if (results && results[0] && results[0].result) {
           const detailed = results[0].result;
-          // On fusionne si non vide
-          if (detailed.siret) item.siret = detailed.siret;
-          if (detailed.siren) item.siren = detailed.siren;
-          if (detailed.code_naf) item.code_naf = detailed.code_naf;
-          if (detailed.capital) item.capital = detailed.capital;
-          if (detailed.dirigeant) item.dirigeant = detailed.dirigeant;
-          if (detailed.date_creation) item.date_creation = detailed.date_creation;
-          if (detailed.effectif) item.effectif = detailed.effectif;
-          if (detailed.services) item.services = detailed.services;
-          if (detailed.facebook) item.facebook = detailed.facebook;
-          if (detailed.instagram) item.instagram = detailed.instagram;
-          if (detailed.twitter) item.twitter = detailed.twitter;
-          if (detailed.linkedin) item.linkedin = detailed.linkedin;
-
+          Object.assign(item, detailed);
           console.log(`✅ Enrichi (Tab) [${i + 1}/${total}]: ${item.denomination}`);
         }
 
@@ -263,9 +286,7 @@ document.getElementById('deep-scrap').onclick = async () => {
   updateStats(lastData);
   showStatus(`✅ Enrichissement terminé ! (${processed} fiches)`, 'success');
 
-  try {
-    chrome.storage.local.set({ lastExtraction: lastData, timestamp: Date.now() });
-  } catch (e) { }
+  try { chrome.storage.local.set({ lastExtraction: lastData, timestamp: Date.now() }); } catch (e) { }
 };
 
 try {
@@ -280,27 +301,116 @@ try {
   }
 } catch (error) { }
 
-// === FONCTION D'EXTRACTION PRO ===
+// === FONCTION D'EXTRACTION POLYVALENTE ===
 async function extractPJDataPro(options) {
   const allResults = [];
   let currentPage = 1;
   const nextSelector = options.nextSelector || 'a[rel="next"], #pagination-next';
   const cardSelector = options.cardSelector || '.bi-list li, article[itemtype*="LocalBusiness"]';
 
-  // Reveal phones
-  if (options.revealPhones) {
-    const btns = document.querySelectorAll('button, a, [class*="phone"], [class*="tel"]');
-    for (const btn of btns) {
-      const text = (btn.innerText || btn.textContent || btn.getAttribute('aria-label') || '').toLowerCase();
-      if (/afficher.*n°|afficher.*num[ée]ro|voir.*num[ée]ro|afficher.*tel|show.*phone/i.test(text)) {
+  // --- MODE FICHE UNIQUE ---
+  if (window.location.href.includes('/pros/')) {
+    const r = {};
+    let jsonLd = {};
+    let faqData = null;
+
+    try {
+      const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+      for (const s of scripts) {
+        const txt = s.textContent;
+        const json = JSON.parse(txt);
+        const items = Array.isArray(json) ? json : [json];
+        const business = items.find(i => i['@type'] === 'LocalBusiness' || i['@type'] === 'Restaurant' || i['@type'] === 'Hotel' || i['@type'] === 'FoodEstablishment');
+        if (business) jsonLd = business;
+        if (txt.includes('FAQPage')) {
+          const faq = items.find(i => i['@type'] === 'FAQPage');
+          if (faq) faqData = faq;
+        }
+      }
+    } catch (e) { }
+
+    const h1 = document.querySelector('h1', '.deno-headline');
+    r.denomination = jsonLd.name || (h1 ? h1.innerText.trim() : '');
+    r.url = window.location.href;
+    if (!r.denomination) return [];
+
+    r.telephone = jsonLd.telephone || document.querySelector('.numero, .full-number')?.innerText?.trim() || '';
+    r.telephone_raw = r.telephone.replace(/\D/g, '');
+
+    if (jsonLd.address) {
+      r.adresse = jsonLd.address.streetAddress;
+      r.codePostal = jsonLd.address.postalCode;
+      r.ville = jsonLd.address.addressLocality;
+      r.adresse_full_long = `${r.adresse} ${r.codePostal} ${r.ville}`;
+    } else {
+      const addr = document.querySelector('.adresse, .address-container');
+      r.adresse_full_long = addr ? addr.innerText.replace(/\s+/g, ' ').trim() : '';
+      const m = r.adresse_full_long.match(/(\d{5})\s+(.+)$/);
+      if (m) { r.codePostal = m[1]; r.ville = m[2]; }
+    }
+
+    r.description = jsonLd.description || document.querySelector('.description')?.innerText?.trim() || '';
+    r.activite = jsonLd.servesCuisine || document.querySelector('.activite, .rubrique')?.innerText?.trim() || '';
+    r.horaires = jsonLd.openingHours || '';
+
+    if (faqData && faqData.mainEntity) {
+      const q = faqData.mainEntity.find(x => x.name && x.name.match(/prestations|services/i));
+      if (q && q.acceptedAnswer) {
+        r.services = q.acceptedAnswer.text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+    }
+
+    const decodePJ = (sel) => {
+      const elems = document.querySelectorAll(sel);
+      for (const el of elems) {
+        if (el.href && !el.href.endsWith('#') && !el.href.startsWith('javascript')) return el.href;
         try {
-          const card = btn.closest('li') || btn.closest('article') || btn.parentElement;
-          if (card && /(?:\+33|0)[1-9](?:[\s.\-]?\d{2}){4}/.test(card.innerText)) continue;
-          btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          await new Promise(r => setTimeout(r, 150));
-          btn.click();
-          await new Promise(r => setTimeout(r, 400));
+          const raw = el.getAttribute('data-pjlb');
+          if (raw) {
+            const json = JSON.parse(raw);
+            if (json.url) return atob(json.url);
+          }
         } catch (e) { }
+      }
+      return '';
+    };
+
+    r.site_web = decodePJ('a.SITE_EXTERNE, a.website, [data-pjstats*="SITE_GRATUIT"]');
+    r.facebook = decodePJ('a.FACEBOOK, a[href*="facebook.com"]');
+    r.twitter = decodePJ('a.TWITTER, a[href*="twitter.com"]');
+    r.instagram = decodePJ('a.INSTAGRAM, a[href*="instagram.com"]');
+    r.linkedin = decodePJ('a.LINKEDIN, a[href*="linkedin.com"]');
+    r.youtube = decodePJ('a.YOUTUBE, a[href*="youtube.com"]');
+
+    const pageText = document.body.innerText;
+    const siretMatch = pageText.match(/SIRET\s*[\:\.]?\s*(\d[\d\s]{13,})/i) || pageText.match(/\b\d{3}\s\d{3}\s\d{3}\s\d{5}\b/);
+    if (siretMatch) {
+      r.siret = siretMatch[0].replace(/\D/g, '');
+      r.siren = r.siret.substring(0, 9);
+    } else {
+      const siretEl = document.querySelector('[data-siret]');
+      if (siretEl) r.siret = siretEl.getAttribute('data-siret');
+    }
+
+    return [r];
+  }
+
+  // --- MODE LISTE ---
+  if (options.revealPhones) {
+    const cards = document.querySelectorAll(cardSelector);
+    for (const card of cards) {
+      const btns = card.querySelectorAll('button, a, [class*="phone"], [class*="tel"]');
+      for (const btn of btns) {
+        const text = (btn.innerText || btn.textContent || btn.getAttribute('aria-label') || '').toLowerCase();
+        if (/afficher.*n°|afficher.*num[ée]ro|voir.*num[ée]ro|afficher.*tel|show.*phone/i.test(text)) {
+          try {
+            if (/(?:\+33|0)[1-9](?:[\s.\-]?\d{2}){4}/.test(card.innerText)) continue;
+            btn.scrollIntoView({ block: 'center' });
+            await new Promise(r => setTimeout(r, 50));
+            btn.click();
+            await new Promise(r => setTimeout(r, 100));
+          } catch (e) { }
+        }
       }
     }
   }
@@ -351,7 +461,21 @@ async function extractPJDataPro(options) {
       r.ville = m ? m[2].trim() : '';
       r.adresse = r.adresse_full_long.replace(/\d{5}\s+[A-Za-zÀ-ÿ\s\-]+$/, '').trim();
 
-      // Basic init
+      const decodePJList = (root, sel) => {
+        const elem = root.querySelector(sel);
+        if (!elem) return '';
+        if (elem.href && !elem.href.endsWith('#')) return elem.href;
+        try {
+          const raw = elem.getAttribute('data-pjlb');
+          if (raw) {
+            const json = JSON.parse(raw);
+            if (json.url) return atob(json.url);
+          }
+        } catch (e) { }
+        return '';
+      };
+
+      r.site_web = decodePJList(card, 'a.SITE_EXTERNE, a.website, [class*="siteweb"]');
       r.siret = ''; r.siren = ''; r.services = ''; r.facebook = ''; r.instagram = '';
 
       results.push(r);
@@ -361,14 +485,10 @@ async function extractPJDataPro(options) {
 
   allResults.push(...extractPage());
 
-  // Pagination configurable
   if (options.autoPaginate && currentPage < options.maxPages) {
     while (currentPage < options.maxPages) {
       let next = document.querySelector(nextSelector);
-
-      // Fallback si selecteur custom échoue
       if (!next) next = document.querySelector('a[rel="next"], #pagination-next, [aria-label*="age suivant"]');
-
       if (!next || next.classList.contains('disabled')) break;
 
       try {
@@ -378,15 +498,21 @@ async function extractPJDataPro(options) {
         await new Promise(r => setTimeout(r, options.pageDelay));
 
         if (options.revealPhones) {
-          const btns = document.querySelectorAll('button, a, [class*="phone"], [class*="tel"]');
-          btns.forEach(btn => {
-            if (/afficher.*n°|afficher.*num[ée]ro/i.test(btn.innerText)) {
-              try { btn.click(); } catch (e) { }
+          const cards = document.querySelectorAll(cardSelector);
+          for (const card of cards) {
+            const btns = card.querySelectorAll('button, a, [class*="phone"], [class*="tel"]');
+            for (const btn of btns) {
+              if (/afficher.*n°|afficher.*num[ée]ro/i.test(btn.innerText)) {
+                try {
+                  btn.scrollIntoView({ block: 'center' });
+                  await new Promise(r => setTimeout(r, 50));
+                  btn.click();
+                  await new Promise(r => setTimeout(r, 100));
+                } catch (e) { }
+              }
             }
-          });
-          await new Promise(r => setTimeout(r, 1000));
+          }
         }
-
         allResults.push(...extractPage());
         currentPage++;
       } catch (e) { break; }

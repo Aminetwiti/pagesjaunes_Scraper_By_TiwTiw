@@ -3,222 +3,278 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>PagesJaunes Extractor Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PJ Extractor Pro</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --primary: #2ecc71;
+      --secondary: #3498db;
+      --dark: #2c3e50;
+      --light: #ecf0f1;
+      --danger: #e74c3c;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      width: 420px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 380px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 15px;
+      margin: 0;
+      background-color: #f9f9f9;
       color: #333;
     }
 
-    .container {
-      background: white;
+    h1 {
+      font-size: 18px;
+      text-align: center;
+      color: var(--dark);
+      margin-bottom: 15px;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 10px;
     }
 
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .main-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--primary);
       color: white;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: 20px;
-      margin-bottom: 5px;
-    }
-
-    .header p {
-      font-size: 12px;
-      opacity: 0.9;
-    }
-
-    .content {
-      padding: 20px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
-      border: 2px solid #e9ecef;
-    }
-
-    .stat-value {
-      font-size: 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
       font-weight: bold;
-      color: #667eea;
-      display: block;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
-    .stat-label {
-      font-size: 11px;
-      color: #6c757d;
+    .main-btn:hover {
+      background-color: #27ae60;
+    }
+
+    .main-btn:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .secondary-btn {
+      background-color: #9b59b6;
       margin-top: 5px;
     }
 
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      margin-bottom: 10px;
+    .secondary-btn:hover {
+      background-color: #8e44ad;
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-secondary {
-      background: #28a745;
-      color: white;
-    }
-
-    .btn-secondary:hover {
-      background: #218838;
-      transform: translateY(-2px);
-    }
-
-    .btn-group {
+    .options-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    .btn-small {
-      padding: 10px;
+    .option-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .option-item label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #7f8c8d;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      padding: 6px;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
       font-size: 13px;
     }
 
-    .options {
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
     }
 
-    .option-row {
+    .checkbox-container input {
+      opacity: 0;
+      cursor: pointer;
+      height: 0;
+      width: 0;
+    }
+
+    .checkmark {
+      height: 18px;
+      width: 18px;
+      background-color: #eee;
+      border-radius: 3px;
+      margin-right: 8px;
+      position: relative;
+    }
+
+    .checkbox-container:hover input~.checkmark {
+      background-color: #ccc;
+    }
+
+    .checkbox-container input:checked~.checkmark {
+      background-color: var(--secondary);
+    }
+
+    .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+      left: 6px;
+      top: 2px;
+      width: 4px;
+      height: 9px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .checkbox-container input:checked~.checkmark:after {
+      display: block;
+    }
+
+    .stats-container {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
+      margin: 15px 0;
+      gap: 5px;
     }
 
-    .option-row label {
-      font-size: 13px;
-      color: #495057;
+    .stat-box {
+      flex: 1;
+      background: white;
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      position: relative;
     }
 
-    input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
+    .stat-box strong {
+      display: block;
+      font-size: 18px;
+      color: var(--dark);
+    }
+
+    .stat-box span {
+      font-size: 11px;
+      color: #7f8c8d;
+    }
+
+    #btn-clear-data {
+      flex: 0 0 50px;
+      /* Taille fixe pour le bouton clear */
       cursor: pointer;
+      background: #ffebee;
+      border: 1px solid #ffcdd2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
-    input[type="number"] {
-      width: 60px;
-      padding: 5px;
-      border: 1px solid #ced4da;
+    #btn-clear-data:hover {
+      background: #ffcdd2;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px;
+      background: white;
+      border: 1px solid #bdc3c7;
       border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: #ecf0f1;
+      border-color: #95a5a6;
+    }
+
+    .action-btn.csv {
+      border-left: 4px solid #27ae60;
+    }
+
+    .action-btn.json {
+      border-left: 4px solid #f1c40f;
     }
 
     #status {
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      margin-bottom: 15px;
       display: none;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      text-align: center;
     }
 
-    #status.success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+    .success {
+      background-color: #dff0d8;
+      color: #3c763d;
+      border: 1px solid #d6e9c6;
     }
 
-    #status.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+    .error {
+      background-color: #f2dede;
+      color: #a94442;
+      border: 1px solid #ebccd1;
     }
 
-    #status.info {
-      background: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
+    .info {
+      background-color: #d9edf7;
+      color: #31708f;
+      border: 1px solid #bce8f1;
     }
 
-    .progress-bar {
+    .progress {
       height: 4px;
-      background: #e9ecef;
+      background: #eee;
+      margin-top: 10px;
       border-radius: 2px;
       overflow: hidden;
-      margin-bottom: 15px;
       display: none;
     }
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #667eea, #764ba2);
+      background: var(--secondary);
       width: 0%;
       transition: width 0.3s;
     }
 
-    .preview {
-      max-height: 150px;
-      overflow-y: auto;
-      background: #f8f9fa;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-family: monospace;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    .footer {
-      background: #f8f9fa;
-      padding: 15px;
-      text-align: center;
-      font-size: 11px;
-      color: #6c757d;
-      border-top: 1px solid #e9ecef;
-    }
-
     .loader {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3498db;
       border-radius: 50%;
-      width: 20px;
-      height: 20px;
+      width: 14px;
+      height: 14px;
       animation: spin 1s linear infinite;
       display: inline-block;
-      margin-right: 8px;
     }
 
     @keyframes spin {
@@ -230,95 +286,129 @@
         transform: rotate(360deg);
       }
     }
+
+    #preview {
+      margin-top: 15px;
+      padding: 10px;
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #555;
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    details {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    summary {
+      cursor: pointer;
+      outline: none;
+      margin-bottom: 5px;
+    }
+
+    .advanced-config {
+      padding: 5px;
+      background: #fff;
+      border: 1px solid #eee;
+      margin-top: 5px;
+    }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>📋 PagesJaunes Extractor Pro</h1>
-      <p>Extraction intelligente de données</p>
+  <h1>PagesJaunes Extract Pro</h1>
+
+  <div class="options-grid">
+    <div class="option-item">
+      <label>Max pages</label>
+      <input type="number" id="max-pages" value="5" min="1" max="100">
     </div>
-    <div class="content">
-      <div class="stats">
-        <div class="stat-card">
-          <span class="stat-value" id="stat-total">0</span>
-          <span class="stat-label">Fiches</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value" id="stat-phones">0</span>
-          <span class="stat-label">Téléphones</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value" id="stat-emails">0</span>
-          <span class="stat-label">Emails</span>
-        </div>
-      </div>
-
-      <div class="progress-bar" id="progress-bar">
-        <div class="progress-fill" id="progress-fill"></div>
-      </div>
-
-      <div id="status"></div>
-
-      <div class="options">
-        <div class="option-row">
-          <label>Pagination auto</label>
-          <input type="checkbox" id="auto-paginate" checked>
-        </div>
-        <div class="option-row">
-          <label>Cliquer "Afficher numéro"</label>
-          <input type="checkbox" id="reveal-phones" checked>
-        </div>
-        <div class="option-row">
-          <label>Pages max</label>
-          <input type="number" id="max-pages" value="10" min="1" max="50">
-        </div>
-        <div class="option-row">
-          <label>Délai entre pages (ms)</label>
-          <input type="number" id="page-delay" value="2000" min="500" max="10000" step="500">
-        </div>
-        <div class="option-row" style="border-top: 1px solid #eee; padding-top: 10px; margin-top: 5px;">
-          <label style="font-weight: 600; color: #6f42c1;">➕ Cumuler les résultats</label>
-          <input type="checkbox" id="append-mode">
-        </div>
-
-        <details style="margin-top: 10px; font-size: 12px; color: #666; cursor: pointer;">
-          <summary>⚙️ Options Avancées (Sélecteurs)</summary>
-          <div style="margin-top: 10px; background: #fff; padding: 10px; border: 1px solid #eee; border-radius: 5px;">
-            <div style="margin-bottom: 8px;">
-              <label style="display:block; margin-bottom:3px;">Sélecteur Bouton "Suivant"</label>
-              <input type="text" id="selector-next" value='a[id="pagination-next"], a[rel="next"], #pagination-next'
-                style="width:100%; padding:4px; font-family:monospace; border:1px solid #ccc;">
-            </div>
-            <div>
-              <label style="display:block; margin-bottom:3px;">Sélecteur Fiche Pro</label>
-              <input type="text" id="selector-card" value='.bi-list li, article[itemtype*="LocalBusiness"]'
-                style="width:100%; padding:4px; font-family:monospace; border:1px solid #ccc;">
-            </div>
-          </div>
-        </details>
-      </div>
-
-      <button class="btn btn-primary" id="extract">
-        Extraire les données
-      </button>
-
-      <div class="btn-group">
-        <button class="btn btn-secondary btn-small" id="export-json">📥 JSON</button>
-        <button class="btn btn-secondary btn-small" id="export-csv">📥 CSV</button>
-      </div>
-
-      <button class="btn btn-secondary" id="deep-scrap" style="background: #6f42c1; margin-top: 5px;">
-        🚀 Enrichir (Deep Scrap)
-      </button>
-
-      <div class="preview" id="preview">Aucune donnée extraite</div>
-    </div>
-    <div class="footer">
-      Made with TIWTIW | Version 2.0 Pro
+    <div class="option-item">
+      <label>Délai (ms)</label>
+      <input type="number" id="page-delay" value="1500" min="500" step="100">
     </div>
   </div>
+
+  <label class="checkbox-container">
+    <input type="checkbox" id="reveal-phones" checked>
+    <span class="checkmark"></span>
+    📞 Dévoiler les numéros
+  </label>
+
+  <label class="checkbox-container">
+    <input type="checkbox" id="auto-paginate" checked>
+    <span class="checkmark"></span>
+    📄 Pagination automatique
+  </label>
+
+  <label class="checkbox-container">
+    <input type="checkbox" id="append-mode" checked>
+    <span class="checkmark"></span>
+    ➕ Cumuler les résultats (ON par défaut)
+  </label>
+
+  <button id="extract" class="main-btn">
+    Extraction Rapide (Visible)
+  </button>
+
+  <button id="deep-scrap" class="main-btn secondary-btn"
+    title="Ouvre les fiches une par une (Recommandé pour infos complètes)">
+    🚀 Enrichir (Deep Scrap)
+  </button>
+
+  <div class="progress" id="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="stats-container">
+    <div class="stat-box">
+      <strong id="stat-total">0</strong>
+      <span>Fiches</span>
+    </div>
+    <div class="stat-box">
+      <strong id="stat-phones">0</strong>
+      <span>Tels</span>
+    </div>
+    <div class="stat-box" style="display:none"> <!-- Masqué pour gagner place -->
+      <strong id="stat-emails">0</strong>
+      <span>Emails</span>
+    </div>
+    <div class="stat-box" id="btn-clear-data" title="Vider la mémoire"
+      style="background:#fff0f0; border:1px solid #ffcccc;">
+      <strong style="color:red; font-size:16px;">🗑️</strong>
+      <span style="color:red;">Vider</span>
+    </div>
+  </div>
+
+  <div class="actions-row">
+    <button class="action-btn csv" id="export-csv">📄 Export CSV</button>
+    <button class="action-btn json" id="export-json">{} Export JSON</button>
+  </div>
+
+  <div id="preview">En attente...</div>
+
+  <details>
+    <summary>⚙️ Options Avancées (Sélecteurs)</summary>
+    <div class="advanced-config">
+      <div class="option-item">
+        <label>Sélecteur Bouton Suivant:</label>
+        <input type="text" id="selector-next" placeholder="a[rel='next']">
+      </div>
+      <div class="option-item" style="margin-top:5px;">
+        <label>Sélecteur Fiche Pro:</label>
+        <input type="text" id="selector-card" placeholder=".bi-list li">
+      </div>
+    </div>
+  </details>
+
   <script src="popup.js"></script>
 </body>
 
